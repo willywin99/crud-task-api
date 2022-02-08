@@ -21,7 +21,8 @@ app.use(function (req, res, next) {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
 
   // Request headers you wish to allow
-  res.setHeader('Access-Control-Allow-Headers', 'Origin', 'X-Requested-With, Content-Type, Accept');
+  // res.setHeader('Access-Control-Allow-Headers', 'Origin', 'X-Requested-With, Content-Type, Accept');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
 
   // Pass to next layer of middleware
   next();
@@ -105,13 +106,22 @@ app.patch('/tasklists/:taskListId', (req, res) => {
 
 // DELETE a tasklist by id
 app.delete('/tasklists/:taskListId', (req, res) => {
-  TaskList.findByIdAndDelete(req.params.taskListId)
+
+  // Delete all tasks within a if that tasklist is deleted
+  const deleteAllContainingTask = (taskList) => {
+    Task.deleteMany({ _taskListId: req.params.taskListId })
+      .then(() => { return taskList })
+      .catch((error) => { console.log(error) });
+  };
+
+  const responseTaskList = TaskList.findByIdAndDelete(req.params.taskListId)
     .then((taskList) => {
-      res.status(201).send(taskList)
+      deleteAllContainingTask(taskList);
     })
     .catch(
       (error) => { console.log(error) }
     )
+  res.status(200).send(responseTaskList);
 });
 
 /*
